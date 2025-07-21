@@ -1,0 +1,23 @@
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: 1089457796072-4vlr4ao4l23mgvotlgrahra4aoeqr7f2.apps.googleusercontent.com
+            client-secret: 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
+            scope:
+              - openid
+              - email
+              - profile
+              - https://www.googleapis.com/auth/gmail.send
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+
+  data:
+    mongodb:
+      uri: mongodb+srv://sirfayush1008:Ayush%403344@cluster0.ngtgm.mongodb.net/MailYaan?retryWrites=true&w=majority

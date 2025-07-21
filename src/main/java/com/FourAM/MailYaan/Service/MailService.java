@@ -1,85 +1,52 @@
-package com.FourAM.MailYaan.Service;
-
-import com.FourAM.MailYaan.DTO.ScheduleRequest;
-import com.FourAM.MailYaan.DTO.SendNowRequest;
-import com.FourAM.MailYaan.Model.EmailModel;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
-
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
-@Service
-public class MailService {
-
-    @Autowired
-    private JavaMailSender mailSender;
-
-    private final List<EmailModel> scheduledEmails = new ArrayList<>();
-
-    public String scheduleEmail(ScheduleRequest request) {
-        if (request.getReceiversEmail().size() != request.getDescription().size()) {
-            return "Error: Number of recipients and descriptions must match!";
-        }
-
-        EmailModel emailModel = new EmailModel(
-                request.getSendersEmail(),
-                request.getReceiversEmail(),
-                request.getSubject(),
-                request.getDescription(),
-                request.getScheduledTime()
-        );
-
-        scheduledEmails.add(emailModel);
-        return "Email(s) scheduled successfully.";
-    }
-
-    public String sendNow(SendNowRequest request) {
-        if (request.getReceiversEmail().size() != request.getDescription().size()) {
-            return "Error: Number of recipients and descriptions must match!";
-        }
-
-        for (int i = 0; i < request.getReceiversEmail().size(); i++) {
-            try {
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setFrom(request.getSendersEmail());
-                message.setTo(request.getReceiversEmail().get(i));
-                message.setSubject(request.getSubject());
-                message.setText(request.getDescription().get(i));
-
-                mailSender.send(message);
-                System.out.println("Email sent to: " + request.getReceiversEmail().get(i));
-            } catch (Exception e) {
-                System.out.println("Failed to send to " + request.getReceiversEmail().get(i) + ": " + e.getMessage());
-            }
-        }
-
-        return "Email(s) sent immediately.";
-    }
-
-    @Scheduled(fixedRate = 30000)
-    public void checkAndSendScheduledEmails() {
-        LocalDateTime now = LocalDateTime.now();
-        Iterator<EmailModel> iterator = scheduledEmails.iterator();
-
-        while (iterator.hasNext()) {
-            EmailModel email = iterator.next();
-            if (!now.isBefore(email.getScheduledTime())) {
-                SendNowRequest request = new SendNowRequest();
-                request.setSendersEmail(email.getSendersEmail());
-                request.setReceiversEmail(email.getReceiversEmail());
-                request.setSubject(email.getSubject());
-                request.setDescription(email.getDescription());
-
-                sendNow(request);
-                iterator.remove();
-            }
-        }
-    }
-}
+//// --- GmailService.java ---
+//package com.FourAM.MailYaan.Service;
+//
+//import com.FourAM.MailYaan.DTO.SendNowRequest;
+//import com.FourAM.MailYaan.Model.EmailModel;
+//import com.google.api.services.gmail.Gmail;
+//import jakarta.mail.internet.MimeMessage;
+//import org.springframework.beans.factory.annotation.Autowired;
+//import org.springframework.stereotype.Service;
+//import java.util.logging.Level;
+//import java.util.logging.Logger;
+//
+//@Service
+//public class MailService {
+//
+//    @Autowired
+//    private OAuthSessionService sessionService;
+//
+//    @Autowired
+//    private GmailService gmailService;
+//
+//    private static final Logger logger = Logger.getLogger(MailService.class.getName());
+//
+//    public String sendNow(SendNowRequest request) {
+//        if (request.getReceiversEmail().size() != request.getDescription().size()) {
+//            return "Error: Number of recipients and descriptions must match!";
+//        }
+//
+//        String sender = request.getSendersEmail();
+//        String token = sessionService.findToken(sender);
+//        if (token == null) {
+//            return "Error: Sender not authenticated via OAuth2.";
+//        }
+//
+//        try {
+//            Gmail gmail = gmailService.getGmailService(token);
+//            for (int i = 0; i < request.getReceiversEmail().size(); i++) {
+//                MimeMessage email = gmailService.createEmail(
+//                        request.getReceiversEmail().get(i),
+//                        sender,
+//                        request.getSubject(),
+//                        request.getDescription().get(i)
+//                );
+//                gmailService.sendMessage(gmail, "me", email);
+//            }
+//            return "Email(s) sent via Gmail API.";
+//        } catch (Exception e) {
+//            logger.log(Level.SEVERE, "Failed to send email via Gmail API for sender: " + sender, e);
+//            return "Error sending email: " + e.getMessage();
+//        }
+//    }
+//}

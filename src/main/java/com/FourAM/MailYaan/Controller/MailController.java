@@ -2,9 +2,12 @@ package com.FourAM.MailYaan.Controller;
 
 import com.FourAM.MailYaan.DTO.ScheduleRequest;
 import com.FourAM.MailYaan.DTO.SendNowRequest;
-import com.FourAM.MailYaan.Service.MailService;
+import com.FourAM.MailYaan.Service.GmailService;
+import com.FourAM.MailYaan.Service.GmailService;
+import com.FourAM.MailYaan.Service.OAuthSessionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -12,30 +15,40 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/api/email")
 public class MailController {
 
-    @Autowired
-    private MailService mailService;
 
-    @PostMapping("/schedule")
-    public String scheduleEmail(
-            @RequestHeader(value = "access-token", required = false) String accessToken,
-            @RequestBody ScheduleRequest emailModel) {
+    private GmailService gmailService;
+    private OAuthSessionService sessionService;
 
-        validateAccessToken(accessToken);
-        return mailService.scheduleEmail(emailModel);
+    MailController(GmailService gmailService,OAuthSessionService oAuthSessionService){
+        this.sessionService=oAuthSessionService;
+        this.gmailService=gmailService;
     }
 
-    @PostMapping("/send-now")
-    public String sendEmailNow(
-            @RequestHeader(value = "access-token", required = false) String accessToken,
-            @RequestBody SendNowRequest emailModel) {
-
-        validateAccessToken(accessToken);
-        return mailService.sendNow(emailModel);
-    }
-
-    private void validateAccessToken(String token) {
-        if (token == null || token.trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing or empty access token");
+    @PostMapping("/send-mail")
+    public ResponseEntity<String> sendMail(@RequestParam String userEmail,
+                                           @RequestParam String to,
+                                           @RequestParam String subject,
+                                           @RequestParam String message) {
+        try {
+            return gmailService.sendMailAsUser(userEmail, to, subject, message);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
+
+
+//    @PostMapping("/schedule")
+//    public String scheduleEmail(@RequestHeader("X-User-Email") String userEmail,
+//                                @RequestBody ScheduleRequest request) {
+//
+//        if (!sessionService.isAuthenticated(userEmail)) {
+//            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "OAuth2 session not found");
+//        }
+//
+//        request.setSendersEmail(userEmail);
+//
+//        return mailService.scheduleEmail(request);
+//    }
+
+
 }
