@@ -1,63 +1,63 @@
 package com.FourAM.MailYaan.Service;
-
-import com.FourAM.MailYaan.Model.OAuthModel;
-import jakarta.mail.*;
-import jakarta.mail.internet.InternetAddress;
-import jakarta.mail.internet.MimeMessage;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.*;
+import com.google.api.services.gmail.model.Message;
+import com.FourAM.MailYaan.Model.EmailModel;
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.services.gmail.Gmail;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
-import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.Properties;
 
 @Service
 public class GmailService {
+    private static final String APPLICATION_NAME = "MailYaan";
+    private static final GsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
 
-    @Autowired
-    private OAuthSessionService oauthService;
+    private final OAuth2AuthorizedClientService authorizedClientService;
 
-    private final RestTemplate restTemplate = new RestTemplate();
-
-    public ResponseEntity<String> sendMailAsUser(String userEmail, String to, String subject, String bodyText) throws Exception {
-        OAuthModel tokenData = oauthService.getTokenByEmail(userEmail);
-
-        if (tokenData == null || oauthService.isTokenExpired(tokenData)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token missing or expired");
-        }
-
-        String accessToken = tokenData.getAccessToken();
-        String rawEmail = createRawEmail(to, subject, bodyText);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        String jsonBody = "{\"raw\": \"" + rawEmail + "\"}";
-        HttpEntity<String> entity = new HttpEntity<>(jsonBody, headers);
-
-        return restTemplate.postForEntity(
-                "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
-                entity,
-                String.class
-        );
+    public GmailService(OAuth2AuthorizedClientService authorizedClientService) {
+        this.authorizedClientService = authorizedClientService;
     }
 
-    private String createRawEmail(String to, String subject, String bodyText) throws Exception {
-        Properties props = new Properties();
-        Session session = Session.getInstance(props, null);
+    public void sendEmail(EmailModel emailModel) throws Exception {
 
-        MimeMessage message = new MimeMessage(session);
-        message.setFrom(new InternetAddress("me@gmail.com")); // 'me' works for Gmail API
-        message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
-        message.setSubject(subject);
-        message.setText(bodyText);
+        OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient("google", emailModel.getSendersEmail());
+        if (client == null) {
+            throw new IllegalStateException("User not logged in or authorized");
+        }
 
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        message.writeTo(buffer);
+        String accessToken = client.getAccessToken().getTokenValue();
 
-        return Base64.getUrlEncoder().encodeToString(buffer.toByteArray());
+        var httpTransport = GoogleNetHttpTransport.newTrustedTransport();
+
+        Gmail gmail = new Gmail.Builder(httpTransport, JSON_FACTORY,
+                request -> request.getHeaders().setAuthorization("Bearer " + accessToken))
+                .setApplicationName(APPLICATION_NAME)
+                .build();
+
+        String rawEmail = buildRawEmail(emailModel);
+
+        Message message = new Message();
+        message.setRaw(Base64.getUrlEncoder().encodeToString(rawEmail.getBytes(StandardCharsets.UTF_8)));
+
+        gmail.users().messages().send("me", message).execute();
+    }
+
+    private String buildRawEmail(EmailModel emailModel) {
+        String toHeader = String.join(", ", emailModel.getReceiversEmail());
+        String bodyText = String.join("\n", emailModel.getDescription());
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("From: ").append(emailModel.getSendersEmail()).append("\r\n");
+        sb.append("To: ").append(toHeader).append("\r\n");
+        sb.append("Subject: ").append(emailModel.getSubject()).append("\r\n");
+        sb.append("Content-Type: text/plain; charset=\"UTF-8\"\r\n");
+        sb.append("\r\n");
+        sb.append(bodyText).append("\r\n");
+
+        return sb.toString();
     }
 }
