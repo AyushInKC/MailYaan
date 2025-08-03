@@ -10,6 +10,6 @@ public class HealthController {
 
     @GetMapping("/")
     public String get(){
-        return "Welcome to Health COntroller!!!";
+        return "Welcome to Health Controller!!!";
     }
 }

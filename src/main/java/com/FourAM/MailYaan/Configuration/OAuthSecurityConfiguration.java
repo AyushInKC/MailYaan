@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.server.resource.introspection.OpaqueTokenIntrospector;
-import org.springframework.security.oauth2.server.resource.authentication.OpaqueTokenAuthenticationProvider;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -29,12 +28,12 @@ public class OAuthSecurityConfiguration {
                         .requestMatchers("/", "/error", "/webjars/**", "/oauth2/**", "/api/debug/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                // Browser OAuth login
+
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(authEndpoint -> authEndpoint.authorizationRequestResolver(customResolver))
                         .successHandler(oAuth2LoginSuccessHandler)
                 )
-                // API authentication with Google Bearer token
+
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .opaqueToken(token -> token
                                 .introspector(googleOpaqueTokenIntrospector())
@@ -43,11 +42,6 @@ public class OAuthSecurityConfiguration {
 
         return http.build();
     }
-
-    /**
-     * Google opaque token introspector.
-     * Calls https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=...
-     */
     @Bean
     public OpaqueTokenIntrospector googleOpaqueTokenIntrospector() {
         return token -> {

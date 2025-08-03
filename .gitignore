@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Ignore Spring Boot config
+application.yml
+application-*.yml
