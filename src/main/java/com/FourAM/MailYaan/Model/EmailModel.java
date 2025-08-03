@@ -19,5 +19,4 @@ public class EmailModel {
     private List<String> receiversEmail;
     private String subject;
     private List<String> description;
-    private LocalDateTime scheduledTime;
 }

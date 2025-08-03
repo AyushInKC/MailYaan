@@ -7,7 +7,6 @@ spring:
             client-id: 1089457796072-4vlr4ao4l23mgvotlgrahra4aoeqr7f2.apps.googleusercontent.com
             client-secret: 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
             scope:
-              - openid
               - email
               - profile
               - https://www.googleapis.com/auth/gmail.send
@@ -16,7 +15,8 @@ spring:
           google:
             authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
             token-uri: https://oauth2.googleapis.com/token
-            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-info-uri: https://openidconnect.googleapis.com/v1/userinfo
+            user-name-attribute: email
 
   data:
     mongodb:
